@@ -12,7 +12,6 @@ mongoose.set('useFindAndModify', false)
 dotenv.config()
 //
 const db_uri = process.env.MONGODB_URI;
-console.log(db_uri)
 console.log('connecting to', db_uri)
 
 mongoose.connect(db_uri, { useNewUrlParser: true })
@@ -22,7 +21,6 @@ mongoose.connect(db_uri, { useNewUrlParser: true })
   .catch((error) => {
     console.log('error connection to MongoDB:', error.message)
   })
-
 
 const typeDefs = gql`
   type Book {
@@ -46,6 +44,11 @@ const typeDefs = gql`
       published:Int!
       genres: [String]
     ):Book,
+
+    addAuthor(
+      name: String!
+      born: Int!
+    ):Author,
 
     editAuthor(
       name: String!
@@ -75,7 +78,6 @@ const resolvers = {
   Author:{
     //make this work
     bookCount: (root)=>{
-      console.log(root)
       return Book.find({author:root.author}).countDocuments()
     }
   },
@@ -90,6 +92,17 @@ const resolvers = {
         })
       }
       return book
+    },
+    addAuthor: async(root, args)=>{
+      const author = new Author({...args})
+      try {
+        await author.save()
+      } catch (error) {
+        throw new UserInputError(error.message, {
+          invalidArgs: args,
+        })
+      }
+      return author
     },
     editAuthor:async (root, args)=>{
      const author = await Author.findOne({name:args.name})
@@ -107,8 +120,6 @@ const resolvers = {
       return author
     }
   },
-
-  
 }
 //add context 
 const server = new ApolloServer({
